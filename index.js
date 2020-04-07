@@ -1,53 +1,62 @@
-// Import express
 const express = require("express");
 
 const server = express();
 
-let users = [
-  {
-    id: 0,
-    name: "jon",
-    bio: "text"
-  }
-];
-
 // middleware
-// teaches the server to parse JSON from the body
 server.use(express.json());
+
+let users = [
+	{
+	  id: 0,
+	  name: "jon",
+	  bio: "text"
+	}
+  ];
 
 // endpoints
 server.get("/", (req, res) => {
-  res.json({ api: "running....." });
-});
+	res.json({ api: "running....." });
+  });
+  
 
-// Creates a user using the information sent inside the request body
+// Creates a user
 server.post("/api/users", (req, res) => {
-	const userInfo = req.body;
-  
-	users.push(userInfo);
-  
-	res.status(201).json(users);
+	const user = req.body;
+	if (user.name === "" || user.bio === "") {
+	  res
+		.status(400)
+		.json({ errorMessage: "Please provide a name and bio for the user" });
+	} else {
+	  users.push(user);
+	  res.status(201).json(user);
+	}
+	if (!user) {
+	  res.status(500).json({
+		errorMessage: "There was an error while saving the user to the database ",
+	  });
+	}
   });
 
 // Returns an array users
 server.get("/api/users", (req, res) => {
-  res.json(users);
+  users
+    ? res.status(200).json(users)
+    : res.status(500).json({
+        errorMessage: "The user information could not be retrieved",
+      });
 });
 
-
-// Returns the user object with the specified id
 server.get("/api/users/:id", (req, res) => {
   const id = req.params.id;
 
-  const user = users.find((user) => user.id == id);
+  const user = users.find((e) => e.id == id);
 
-  if (user) {
-    res.status(200).json(user);
-  } else {
-    res.status(404).json({ message: "User not found" });
-  }
+  user
+    ? res.json(user)
+    : res
+        .status(404)
+        .json({ message: "The user with the specified ID does not exist" });
 });
-
 
 // Removes the user with the specified id and returns the deleted user
 server.delete("/api/users/:id", (req, res) => {
@@ -56,27 +65,44 @@ server.delete("/api/users/:id", (req, res) => {
 	const user = users.find((user) => user.id == id);
   
 	if (user) {		
+		users = users.filter(item => item.id != id);
 		res.status(200).json(user);
-		users.splice(id);
 	} else {
-	  res.status(404).json({ message: "User not found" });
+	  res.status(404).json({ message: "The user with the specified ID does not exist." });
 	}
   });
 
-  //Updates the user with the specified id using data from the request body. Returns the modified user
-  server.patch("/api/users/:id", (req, res) => {
+
+  server.put('/api/users/:id', (req, res) => {
+
 	const id = req.params.id;
-  
-	const user = users.find((user) => user.id == id);
-  
-	if (user) {		
-		user[id].name = req.params.name;
-		user[id].bio = req.params.bio;
-		res.status(200).json(user);
+	const selectedUser = users.find(item => item.id == id);
+	const updatedUsers = users.filter(item => item != selectedUser);
+	const selectedUserWithUpdates = {
+	   ...selectedUser, name: req.body.name 
+	   	? req.body.name : selectedUser.name,
+	   bio: req.body.bio 
+	   	? req.body.bio : selectedUser.bio
+	};
+ 
+	if (!selectedUser) {
+	   res.status(404).json({
+		  message: `User not found.`
+	   });
+	} else if (!req.body.name || !req.body.bio) {
+	   res.status(400).json({message: 'Please provide name and bio for the user.'});
 	} else {
-	  res.status(404).json({ message: "User not found" });
-	}
-  });
+	   updatedUsers.push(selectedUserWithUpdates);
+	};
+ 
+	if (!updatedUsers.find(item => item === selectedUserWithUpdates)) {
+	   res.status(500).json({message: 'The user information could not be modified.'})
+	} else {
+	   users = updatedUsers;
+	   res.status(200).json(selectedUserWithUpdates);
+	};
+ 
+ });
 
 const port = 5000; // the server is running on http://localhost:5000
 server.listen(port, () => console.log(`\n== api on port ${port} ==\n`));
