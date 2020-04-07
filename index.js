@@ -76,8 +76,11 @@ server.delete("/api/users/:id", (req, res) => {
   server.put('/api/users/:id', (req, res) => {
 
 	const id = req.params.id;
+
 	const selectedUser = users.find(item => item.id == id);
+
 	const updatedUsers = users.filter(item => item != selectedUser);
+	
 	const selectedUserWithUpdates = {
 	   ...selectedUser, name: req.body.name 
 	   	? req.body.name : selectedUser.name,
